@@ -6,3 +6,13 @@ dotenv as a dependency
 
 npx tsc
 node dist/index.js
+
+## UPDATE SCRIPTS ADDED, NOW RUN FOLLOWING COMMAND
+
+npm run build
+npm run start
+
+you can also run these commands by splitting terminal
+
+tsc -w
+npm run dev
