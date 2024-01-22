@@ -16,3 +16,11 @@ you can also run these commands by splitting terminal
 
 tsc -w
 npm run dev
+
+## RUN APPLICATION USING DOCKER
+
+docker-compose -f docker-compose.yml up -d
+
+shut down app
+
+docker-compose down

@@ -1,5 +1,4 @@
-import { config } from 'dotenv';
-config();
+import 'dotenv/config'
 import express, { Express, Request, Response } from "express"
 
 const app: Express = express();
