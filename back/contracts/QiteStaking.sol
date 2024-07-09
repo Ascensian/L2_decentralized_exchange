@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract QiteStaking is Ownable {
+
+contract QiteStaking is Ownable, AccessControl {
     IERC20 public stakingToken;
     uint256 public rewardRate; // Reward rate per second
     uint256 public totalStaked;
@@ -30,6 +32,7 @@ contract QiteStaking is Ownable {
     }
 
     function stake(uint256 amount) external updateReward(msg.sender) {
+        require(hasRole(USER_ROLE, msg.sender), "Caller is not a registered user");
         require(amount > 0, "Cannot stake 0");
         stakingToken.transferFrom(msg.sender, address(this), amount);
         stakedBalance[msg.sender] += amount;
@@ -38,6 +41,7 @@ contract QiteStaking is Ownable {
     }
 
     function unstake(uint256 amount) external updateReward(msg.sender) {
+        require(hasRole(USER_ROLE, msg.sender), "Caller is not a registered user");
         require(amount > 0, "Cannot unstake 0");
         require(stakedBalance[msg.sender] >= amount, "Insufficient staked balance");
         stakingToken.transfer(msg.sender, amount);
@@ -51,6 +55,7 @@ contract QiteStaking is Ownable {
     }
 
     function getReward() external updateReward(msg.sender) returns (uint256){
+        require(hasRole(USER_ROLE, msg.sender), "Caller is not a registered user");
         uint256 reward = rewardBalance[msg.sender];
         require(reward > 0, "No reward available");
         rewardBalance[msg.sender] = 0;
