@@ -5,6 +5,7 @@ import "./QiteLiquidityToken.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol"; // Chainlink Aggregator interface
 
 contract QitePool is AccessControl {
     using Math for uint;
@@ -21,6 +22,10 @@ contract QitePool is AccessControl {
 
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
+    // Chainlink variables
+    AggregatorV3Interface internal priceFeed1;
+    AggregatorV3Interface internal priceFeed2;
 
     event Swap(
         address indexed sender,
@@ -44,13 +49,29 @@ contract QitePool is AccessControl {
         address indexed user
     );
 
-    constructor(address _token1, address _token2, string memory _liquidityTokenName, string memory _liquidityTokenSymbol) {
+    constructor(address _token1, address _token2, string memory _liquidityTokenName, string memory _liquidityTokenSymbol, address _priceFeed1, address _priceFeed2) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(USER_ROLE, msg.sender);
 
         token1 = _token1;
         token2 = _token2;
         liquidityToken = new QiteLiquidityToken(_liquidityTokenName, _liquidityTokenSymbol);
+
+        // Initialize Chainlink price feeds
+        priceFeed1 = AggregatorV3Interface(_priceFeed1);
+        priceFeed2 = AggregatorV3Interface(_priceFeed2);
+    }
+
+    function getLatestPrice(address token) public view returns (int) {
+        AggregatorV3Interface priceFeed = (token == token1) ? priceFeed1 : priceFeed2;
+        (
+            , 
+            int price,
+            ,
+            ,
+            
+        ) = priceFeed.latestRoundData();
+        return price;
     }
 
     function addLiquidity(uint256 amountToken1, uint256 amountToken2) external {
@@ -97,15 +118,14 @@ contract QitePool is AccessControl {
         // add events
     }
 
-    function swapTokens(address fromToken, address toToken, uint256 amountIn, uint256 amountOut) external {
+    function swapTokens(address fromToken, address toToken, uint256 amountIn) external {
         require(hasRole(USER_ROLE, msg.sender), "Caller is not a registered user");
         // checks
-        require(amountIn > 0 && amountOut > 0, "Amount must be greater than 0");
+        require(amountIn > 0, "Amount must be greater than 0");
         require((fromToken == token1 && toToken == token2) || (fromToken == token2 && toToken == token1), "From and to token are not token of the pool");
         IERC20 fromTokenContract = IERC20(fromToken);
         IERC20 toTokenContract = IERC20(toToken);
         require(fromTokenContract.balanceOf(msg.sender) >= amountIn, "Insufficient balance of tokenFrom");
-        require(toTokenContract.balanceOf(address(this)) >= amountOut, "Insufficient balance of tokenTo");
         // calculate expected amount and compare to amount Out
         uint256 expectedAmount;
         uint256 fee = (amountIn * feeRate) / 10000;
@@ -116,21 +136,34 @@ contract QitePool is AccessControl {
         // (reserve1 + amountIn)*(reserve2 - expectedAmountOut) = constantK
         // reserve2-expectedAmountOut = constantK/ (reserve1+amountIn) 
         // expecteAmountOut = reserve2 - constantK / (reserve1+amountIn)
+        // Get the latest price from Chainlink oracle
+        int priceFromToken = getLatestPrice(fromToken);
+        int priceToToken = getLatestPrice(toToken);
+
+        require(priceFromToken > 0 && priceToToken > 0, "Invalid token prices");
+
+        uint256 amountOutFromOracle = uint256((amountInAfterFee * uint256(priceFromToken)) / uint256(priceToToken));
+
+        // Check if the swap maintains the constant product formula
         if(fromToken == token1){
             expectedAmount = reserve2 - constantK / (reserve1 + amountInAfterFee);
         }else{
             expectedAmount = reserve1 - constantK / (reserve2 + amountInAfterFee);
         }
-        require(amountOut <= expectedAmount, "Swap does not preserve constant formula");
+
+        uint256 finalAmountOut = amountOutFromOracle < expectedAmount ? amountOutFromOracle : expectedAmount;
+
+        require(toTokenContract.balanceOf(address(this)) >= finalAmountOut, "Insufficient balance of tokenTo");
+
         // Perform the swap
         require(fromTokenContract.transferFrom(msg.sender, address(this), amountIn), "Transfer of fromToken failed");
-        require(toTokenContract.transfer(msg.sender, expectedAmount), "Transfer of toToken failed");
+        require(toTokenContract.transfer(msg.sender, finalAmountOut), "Transfer of toToken failed");
         // update the reserves
         if(fromToken == token1){
             reserve1 += amountInAfterFee;
-            reserve2 -= expectedAmount;
+            reserve2 -= finalAmountOut;
         }else{
-            reserve1 -= expectedAmount;
+            reserve1 -= finalAmountOut;
             reserve2 += amountInAfterFee;
         }
         // Check swap is maintaining the constant formula
@@ -138,7 +171,7 @@ contract QitePool is AccessControl {
         // Update constant k
         _updateConstantFormula();
         // add events
-        emit Swap(msg.sender, amountIn, expectedAmount, fromToken, toToken);
+        emit Swap(msg.sender, amountIn, finalAmountOut, fromToken, toToken);
         emit FeesCollected(address(this), fee, fromToken);
     }
 
@@ -176,7 +209,7 @@ contract QitePool is AccessControl {
         require(amount > 0, "Fee amount must be greater than 0");
         collectedFees[token] += amount;
         require(IERC20(token).transfer(msg.sender, amount), "Transfer of fee failed");
-        emit FeesCollected(msg.sender, amount, token);
+    emit FeesCollected(msg.sender, amount, token);
     }
 
     function _updateConstantFormula() internal {
