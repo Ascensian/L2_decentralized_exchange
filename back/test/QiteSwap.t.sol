@@ -6,14 +6,15 @@ import "../src/QiteSwap.sol";
 import "../src/QitePool.sol";
 import "../src/QiteStaking.sol";
 import "../src/QiteRandomToken.sol";
+import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-contract QiteSwapTest is Test {
+contract QiteSwapTest is Test, AccessControl {
     QiteSwap swap;
     QiteStaking staking;
     QiteRandomToken token1;
     QiteRandomToken token2;
     QiteRandomToken liquidityToken;
-    address admin = address(1);
+    address admin = address(this);
     address user = address(2);
 
     function setUp() public {
@@ -25,9 +26,9 @@ contract QiteSwapTest is Test {
         swap = new QiteSwap(address(staking));
 
         vm.prank(admin);
-        swap.grantRole(swap.ADMIN_ROLE(), admin);
+        _grantRole(swap.ADMIN_ROLE(), admin);
         vm.prank(admin);
-        swap.grantRole(swap.USER_ROLE(), user);
+        _grantRole(swap.USER_ROLE(), user);
     }
 
     function testCreatePairs() public {

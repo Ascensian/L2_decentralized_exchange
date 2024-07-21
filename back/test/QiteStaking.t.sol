@@ -4,12 +4,13 @@ pragma solidity ^0.8.20;
 import "../lib/forge-std/src/Test.sol";
 import "../src/QiteStaking.sol";
 import "../src/QiteRandomToken.sol";
+import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-contract QiteStakingTest is Test {
+contract QiteStakingTest is Test, AccessControl {
     QiteStaking staking;
     QiteRandomToken token;
     address admin = address(1);
-    address user = address(2);
+    address user = address(this);
     uint256 rewardRate = 1e18;
 
     function setUp() public {
@@ -17,7 +18,7 @@ contract QiteStakingTest is Test {
         staking = new QiteStaking(address(token), rewardRate, admin);
 
         vm.prank(admin);
-        staking.grantRole(staking.USER_ROLE(), user);
+        _grantRole(staking.USER_ROLE(), user);
     }
 
     function testStake() public {

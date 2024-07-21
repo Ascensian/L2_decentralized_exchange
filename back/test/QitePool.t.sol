@@ -34,9 +34,11 @@ contract QitePoolTest is Test {
         liquidityToken = new QiteLiquidityToken("LiquidityToken", "LTK");
         pool = new QitePool(address(token1), address(token2), "LiquidityToken", "LTK", address(priceFeed1), address(priceFeed2));
 
-        pool.grantRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
-
-        pool.grantRole(pool.DEFAULT_ADMIN_ROLE(), user);
+        // Assurez-vous que l'adresse `this` (le contrat de test) a le rôle `ADMIN_ROLE` et `USER_ROLE`
+        vm.prank(admin);
+        pool.grantRole(pool.ADMIN_ROLE(), admin);
+        vm.prank(admin);
+        pool.grantRole(pool.USER_ROLE(), user);
     }
 
     function testAddLiquidity() public {
@@ -83,17 +85,20 @@ contract QitePoolTest is Test {
     }
 
     function testSetFeeRate() public {
+        vm.prank(admin);
         pool.setFeeRate(50);
         assertEq(pool.getFeeRate(), 50);
     }
 
     function testBanUser() public {
+        vm.prank(admin);
         pool.banUser(user);
         assert(!pool.hasRole(pool.USER_ROLE(), user));
     }
 
     function testRegisterUser() public {
         address newUser = address(0x456);
+        vm.prank(admin);
         pool.registerUser(newUser);
         assert(pool.hasRole(pool.USER_ROLE(), newUser));
     }

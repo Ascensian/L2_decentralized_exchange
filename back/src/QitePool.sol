@@ -52,8 +52,8 @@ contract QitePool is AccessControl {
     );
 
     constructor(address _token1, address _token2, string memory _liquidityTokenName, string memory _liquidityTokenSymbol, address _priceFeed1, address _priceFeed2) {
-        grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        grantRole(USER_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(USER_ROLE, msg.sender);
 
         token1 = _token1;
         token2 = _token2;
@@ -184,13 +184,12 @@ contract QitePool is AccessControl {
 
     function banUser(address user) external {
         require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
-        revokeRole(USER_ROLE, user);
+        _revokeRole(USER_ROLE, user);
         emit UserBanned(user);
     }
 
     function registerUser(address user) external {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
-        grantRole(USER_ROLE, user);
+        _grantRole(USER_ROLE, user);
         emit UserRegistered(user);
     }
 
