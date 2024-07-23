@@ -6,7 +6,7 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 
-contract QiteStaking is Ownable, AccessControl {
+contract Staking is Ownable, AccessControl {
     IERC20 public stakingToken;
     uint256 public rewardRate; // Reward rate per second
     uint256 public totalStaked;
@@ -22,6 +22,7 @@ contract QiteStaking is Ownable, AccessControl {
     event RewardPaid(address indexed user, uint256 reward);
 
     constructor(address _stakingToken, uint256 _rewardRate, address initialOwner) Ownable(initialOwner) {
+        _grantRole(USER_ROLE, msg.sender);
         stakingToken = IERC20(_stakingToken);
         rewardRate = _rewardRate;
     }
@@ -69,5 +70,10 @@ contract QiteStaking is Ownable, AccessControl {
 
     function updateRewardRate(uint256 newRewardRate) external onlyOwner {
         rewardRate = newRewardRate;
+    }
+
+    function supply(uint256 amount) external onlyOwner {
+        require(amount > 0, "Cannot supply 0");
+        stakingToken.transferFrom(msg.sender, address(this), amount);
     }
 }

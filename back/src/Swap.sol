@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./QitePool.sol";
-import "./QiteStaking.sol";
+import "./Pool.sol";
+import "./Staking.sol";
 import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-contract QiteSwap is AccessControl {
-    mapping(address => mapping(address => QitePool)) public getPair;
+contract Swap is AccessControl {
+    mapping(address => mapping(address => Pool)) public getPair;
     address[] public allPairs;
-    QiteStaking public stakingContract;
+    Staking public stakingContract;
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     event PairCreated(address indexed token1, address indexed token2, address pair);
 
-    constructor(address _stakingContract) {
-        stakingContract = QiteStaking(_stakingContract);
+    constructor() {
+       _grantRole(ADMIN_ROLE, msg.sender);
     }
 
 
@@ -27,15 +27,15 @@ contract QiteSwap is AccessControl {
         string memory liquidityTokenName = string(abi.encodePacked("Liquidity-",token1Name,"-",token2Name));
         string memory liquiditySymbol = string(abi.encodePacked("LP-",token1Name,"-",token2Name));
 
-        QitePool qitePool = new QitePool(token1, token2, liquidityTokenName, liquiditySymbol, priceFeed1, priceFeed2);
+        Pool pool = new Pool(token1, token2, liquidityTokenName, liquiditySymbol, priceFeed1, priceFeed2);
         // Update state variable
-        allPairs.push(address(qitePool));
-        getPair[token1][token2] = qitePool;
-        getPair[token2][token1] = qitePool;
+        allPairs.push(address(pool));
+        getPair[token1][token2] = pool;
+        getPair[token2][token1] = pool;
         // emit event
-        emit PairCreated(token1, token2, address(qitePool));
-        // return Qite Pool address
-        return address(qitePool);
+        emit PairCreated(token1, token2, address(pool));
+        // return Pool address
+        return address(pool);
     }
 
     function allPairsLength() external view returns(uint256) {
@@ -46,39 +46,22 @@ contract QiteSwap is AccessControl {
         return allPairs;
     }
 
-    function stakeLiquidityTokens(uint256 amount) external {
-        require(hasRole(USER_ROLE, msg.sender), "Caller is not a registered user");
-        require(amount > 0, "Cannot stake 0");
-        QitePool pool = QitePool(msg.sender);
-        pool.liquidityToken().transferFrom(msg.sender, address(this), amount);
-        pool.liquidityToken().approve(address(stakingContract), amount);
-        stakingContract.stake(amount);
-    }
-
-    function unstakeLiquidityTokens(uint256 amount) external {
-        require(hasRole(USER_ROLE, msg.sender), "Caller is not a registered user");
-        require(amount > 0, "Cannot unstake 0");
-        stakingContract.unstake(amount);
-        QitePool pool = QitePool(msg.sender);
-        pool.liquidityToken().transfer(msg.sender, amount);
-    }
-
     function setPlatformFeeRate(address token1, address token2, uint256 feeRate) external {
         require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
-        QitePool pool = getPair[token1][token2];
+        Pool pool = getPair[token1][token2];
         require(address(pool) != address(0), "Pair does not exist");
         pool.setFeeRate(feeRate);
     }
 
     function banUser(address token1, address token2, address user) external {
         require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
-        QitePool pool = getPair[token1][token2];
+        Pool pool = getPair[token1][token2];
         require(address(pool) != address(0), "Pair does not exist");
         pool.banUser(user);
     }
 
     function getPlatformStatistics(address token1, address token2) external view returns (uint256, uint256, uint256, uint256) {
-    QitePool pool = getPair[token1][token2];
+    Pool pool = getPair[token1][token2];
     require(address(pool) != address(0), "Pair does not exist");
 
     uint256 reserve1;

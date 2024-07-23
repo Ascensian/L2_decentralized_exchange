@@ -2,15 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "../lib/forge-std/src/Test.sol";
-import "../src/QiteLiquidityToken.sol";
+import "../src/LiquidityToken.sol";
 
-contract QiteLiquidityTokenTest is Test {
-    QiteLiquidityToken public liquidityToken;
+contract LiquidityTokenTest is Test {
+    LiquidityToken public liquidityToken;
     address public admin = address(this);
     address public user = address(0x123);
 
     function setUp() public {
-        liquidityToken = new QiteLiquidityToken("LiquidityToken", "LTK");
+        liquidityToken = new LiquidityToken("LiquidityToken", "LTK");
         liquidityToken.grantRole(liquidityToken.DEFAULT_ADMIN_ROLE(), admin);
     }
 

@@ -1,0 +1,9 @@
+[submodule "back/lib/forge-std"]
+	path = back/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "back/lib/openzeppelin-contracts"]
+	path = back/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "back/lib/chainlink"]
+	path = back/lib/chainlink
+	url = https://github.com/smartcontractkit/chainlink

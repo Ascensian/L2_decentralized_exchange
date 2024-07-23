@@ -2,13 +2,13 @@
 pragma solidity ^0.8.20;
 
 import "../lib/forge-std/src/Test.sol";
-import "../src/QiteRandomToken.sol";
+import "../src/RandomToken.sol";
 
-contract QiteRandomTokenTest is Test {
-    QiteRandomToken token;
+contract RandomTokenTest is Test {
+    RandomToken token;
 
     function setUp() public {
-        token = new QiteRandomToken("TestToken", "TT");
+        token = new RandomToken("TestToken", "TT");
     }
 
     function testInitialSupply() public view {

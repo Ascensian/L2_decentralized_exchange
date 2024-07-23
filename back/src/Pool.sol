@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./QiteLiquidityToken.sol";
+import "./LiquidityToken.sol";
 import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 import "../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
@@ -9,7 +9,7 @@ import "../lib/chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interf
 
 
 
-contract QitePool is AccessControl {
+contract Pool is AccessControl {
     using Math for uint;
 
     address public token1;
@@ -17,7 +17,7 @@ contract QitePool is AccessControl {
     uint256 public reserve1;
     uint256 public reserve2;
     uint256 public constantK;
-    QiteLiquidityToken public liquidityToken;
+    LiquidityToken public liquidityToken;
     mapping(address => uint256) public collectedFees;
 
     uint256 public feeRate;
@@ -52,12 +52,11 @@ contract QitePool is AccessControl {
     );
 
     constructor(address _token1, address _token2, string memory _liquidityTokenName, string memory _liquidityTokenSymbol, address _priceFeed1, address _priceFeed2) {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(USER_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, msg.sender);
 
         token1 = _token1;
         token2 = _token2;
-        liquidityToken = new QiteLiquidityToken(_liquidityTokenName, _liquidityTokenSymbol);
+        liquidityToken = new LiquidityToken(_liquidityTokenName, _liquidityTokenSymbol);
 
         // Initialize Chainlink price feeds
         priceFeed1 = AggregatorV3Interface(_priceFeed1);
